@@ -46,49 +46,12 @@ def create_chat_graph():
 
         # Add the nodes
         workflow.add_node("retrieve_context", retrieve_context)
-        workflow.add_node("capture_important_info", capture_important_info_old)
-        workflow.add_node("route_by_semantic", route_by_semantic)
-        workflow.add_node("process_location", process_location_node_v2)
-        workflow.add_node("classify_ambiguity", classify_ambiguity)
-        workflow.add_node("ask_clarification", ask_clarification)
         workflow.add_node("generate_response", generate_response)
         workflow.add_node("summarize_conversation", summarize_conversation)
 
         # Define the flow
-        # Fan-out: START va directamente a ambos nodos en paralelo
         workflow.add_edge(START, "retrieve_context")
-        workflow.add_edge(START, "capture_important_info")
-        # Fan-in: Ambos nodos alimentan a classify_ambiguity
-        workflow.add_edge(["retrieve_context", "capture_important_info"], "route_by_semantic")
-
-        # Conditional routing based on semantic type
-        workflow.add_conditional_edges(
-            "route_by_semantic",
-            route_by_semantic_type,
-            {
-                "process_location": "process_location",
-                "classify_ambiguity": "classify_ambiguity"
-            }
-        )
-
-        # End after processing location - the response is already generated
-        workflow.add_edge("process_location", END)
-
-        # Después de clasificar, decidir si pedir clarificación o generar respuesta
-        workflow.add_conditional_edges(
-            "classify_ambiguity",
-            should_ambiguity,
-            {"ask_clarification": "ask_clarification", "generate_response": "generate_response"}
-        )
-        # Terminar después de pedir clarificación (esperar respuesta del usuario)
-        workflow.add_edge("ask_clarification", END)
-        # Decidir si resumir después de generar respuesta
-        workflow.add_conditional_edges(
-            "generate_response",
-            should_summarize,
-            {"summarize_conversation": "summarize_conversation", "generate_response": END}
-        )
-        # Terminar después de resumir
+        workflow.add_edge("retrieve_context", "generate_response")
         workflow.add_edge("summarize_conversation", END)
 
         store = get_postgres_store()
