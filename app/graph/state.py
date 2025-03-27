@@ -35,3 +35,4 @@ class State(TypedDict):
     web_search: Optional[str]  # For deciding whether to perform a web search
     summary: Optional[str]  # For storing the summary of the conversation
     vehicle_info: VehicleInfo
+    feedback: Annotated[List[str], add]

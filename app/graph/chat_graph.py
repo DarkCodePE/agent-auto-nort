@@ -10,9 +10,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.graph.state import State
-from app.graph.nodes import retrieve_context, generate_response, summarize_conversation, classify_ambiguity, \
-    ask_clarification, capture_important_info, route_by_semantic_type, process_location_node, route_by_semantic, \
-    process_location_node_v2, capture_important_info_old
+from app.graph.nodes import retrieve_context, generate_response, summarize_conversation, human_feedback, \
+    capture_important_info, end_node
 from app.database.postgres import get_postgres_saver, get_postgres_store, get_async_postgres_saver
 import os
 from dotenv import load_dotenv
@@ -46,13 +45,19 @@ def create_chat_graph():
 
         # Add the nodes
         workflow.add_node("retrieve_context", retrieve_context)
+        workflow.add_node("capture_important_info", capture_important_info)
         workflow.add_node("generate_response", generate_response)
+        workflow.add_node("human_feedback", human_feedback)
         workflow.add_node("summarize_conversation", summarize_conversation)
-
+        workflow.add_node("end_node", end_node)
         # Define the flow
         workflow.add_edge(START, "retrieve_context")
-        workflow.add_edge("retrieve_context", "generate_response")
-        workflow.add_edge("summarize_conversation", END)
+        workflow.add_edge(START, "capture_important_info")
+        workflow.add_edge(["retrieve_context", "capture_important_info"], "generate_response")
+        workflow.add_edge("generate_response", "human_feedback")
+        workflow.add_edge("human_feedback", "generate_response")
+        workflow.add_edge("human_feedback", "end_node")
+        workflow.set_finish_point("end_node")
 
         store = get_postgres_store()
         checkpointer = get_postgres_saver()
